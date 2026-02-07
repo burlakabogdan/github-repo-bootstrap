@@ -132,6 +132,46 @@ def main():
                 # Issue will be auto-closed by GitHub if using "Fixes #" keyword
                 # But we can update project status manually if needed
                 
+            # 9. Update Project Status
+            proj_conf = config.get('projects_v2', {})
+            if proj_conf.get('enabled'):
+                 try:
+                     from bootstrap import ensure_project_v2
+                     from project_utils import set_project_item_status, find_project_item_by_content
+                     
+                     project_title = proj_conf.get('title') or repo.name
+                     console.print(f"Updating project '{project_title}' status...")
+                     
+                     proj_action = ensure_project_v2(g.get_user().login, project_title)
+                     
+                     project_id = None
+                     if proj_action['type'] == 'EXISTS':
+                         project_id = proj_action['id']
+                     elif proj_action['type'] == 'CREATE':
+                         result = proj_action['action']()
+                         project_id = result['id']
+                         
+                     if project_id:
+                         # Update PR Status
+                         pr_item_id = find_project_item_by_content(project_id, pr.raw_data['node_id'])
+                         if pr_item_id:
+                             set_project_item_status(project_id, pr_item_id, "Done")
+                             console.print(f"[green]Set PR #{pr.number} status to Done[/]")
+                         
+                         # Update Linked Issue Status
+                         if matches:
+                             issue_num = int(matches[0])
+                             try:
+                                 linked_issue = repo.get_issue(issue_num)
+                                 issue_item_id = find_project_item_by_content(project_id, linked_issue.raw_data['node_id'])
+                                 if issue_item_id:
+                                     set_project_item_status(project_id, issue_item_id, "Done")
+                                     console.print(f"[green]Set Issue #{issue_num} status to Done[/]")
+                             except Exception as e:
+                                 console.print(f"[yellow]Failed to update linked issue: {e}[/]")
+                 except Exception as e:
+                     console.print(f"[yellow]Failed to update project status: {e}[/]")
+
     except Exception as e:
         console.print(f"[red]Failed to merge PR: {e}[/]")
         sys.exit(1)

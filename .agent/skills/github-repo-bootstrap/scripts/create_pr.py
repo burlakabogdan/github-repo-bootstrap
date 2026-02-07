@@ -85,18 +85,49 @@ def main():
                 # PR is also an Item.
                 # Logic: pr.raw_data['node_id'] -> add to project -> set status "Review"
                 
+                # 5. Project Status Update
                 proj_conf = config.get('projects_v2', {})
                 if proj_conf.get('enabled'):
-                    from create_issue import add_issue_to_project
-                    # Use repository name if title is not specified
-                    project_title = proj_conf.get('title') or repo.name
-                    add_issue_to_project(pr.raw_data['node_id'], user.login, project_title)
-                    
-                    # Setting Status field is harder, requires FieldID and OptionID.
-                    # Skipping "Set Field" for MVP complexity, but adding to board works.
-                    
+                    try:
+                        from bootstrap import ensure_project_v2
+                        from project_utils import set_project_item_status, add_item_to_project, find_project_item_by_content
+                        
+                        # Use repository name if title is not specified
+                        project_title = proj_conf.get('title') or repo.name
+                        console.print(f"Adding PR to project '{project_title}'...")
+                        
+                        proj_action = ensure_project_v2(user.login, project_title)
+                        
+                        project_id = None
+                        if proj_action['type'] == 'EXISTS':
+                            project_id = proj_action['id']
+                        elif proj_action['type'] == 'CREATE':
+                            result = proj_action['action']()
+                            project_id = result['id']
+                            
+                        if project_id:
+                            # 1. Add PR to Project & Set Ready
+                            item_id = add_item_to_project(project_id, pr.raw_data['node_id'])
+                            set_project_item_status(project_id, item_id, "Ready")
+                            
+                            # 2. Update Linked Issue to Review
+                            if issue_id:
+                                try:
+                                    linked_issue = repo.get_issue(int(issue_id))
+                                    linked_item_id = find_project_item_by_content(project_id, linked_issue.raw_data['node_id'])
+                                    if linked_item_id:
+                                        set_project_item_status(project_id, linked_item_id, "Review")
+                                        console.print(f"[green]Moved linked issue #{issue_id} to Review[/]")
+                                    else:
+                                         console.print(f"[yellow]Linked issue #{issue_id} not found in project.[/]")
+                                except Exception as e:
+                                    console.print(f"[yellow]Failed to update linked issue: {e}[/]")
+                                    
+                    except Exception as e:
+                        console.print(f"[red]Failed to update project: {e}[/]")
+                        
             except Exception as e:
-                 console.print(f"[red]Failed to create PR: {e}[/]")
+                console.print(f"[red]Failed to create PR: {e}[/]")
 
 if __name__ == "__main__":
     main()

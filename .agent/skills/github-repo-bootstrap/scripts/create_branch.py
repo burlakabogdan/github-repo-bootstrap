@@ -72,6 +72,38 @@ def main():
         try:
             subprocess.run(["git", "checkout", "-b", branch_name], check=True)
             console.print(f"[bold green]Switched to branch {branch_name}[/]")
+            
+            # --- Auto-update Issue Status ---
+            try:
+                from bootstrap import ensure_project_v2
+                from project_utils import set_project_item_status, find_project_item_by_content
+                
+                user = g.get_user()
+                proj_conf = config.get('projects_v2', {})
+                if proj_conf.get('enabled'):
+                    project_title = proj_conf.get('title') or repo.name
+                    
+                    console.print(f"Updating issue status in project '{project_title}'...")
+                    proj_action = ensure_project_v2(user.login, project_title)
+                    
+                    project_id = None
+                    if proj_action['type'] == 'EXISTS':
+                        project_id = proj_action['id']
+                    elif proj_action['type'] == 'CREATE':
+                        result = proj_action['action']()
+                        project_id = result['id']
+                        
+                    if project_id:
+                        # Find issue item in project
+                        item_id = find_project_item_by_content(project_id, issue.raw_data['node_id'])
+                        if item_id:
+                            set_project_item_status(project_id, item_id, "In Progress")
+                        else:
+                            console.print("[yellow]Issue not found in project.[/]")
+            except Exception as e:
+                console.print(f"[yellow]Failed to update issue status: {e}[/]")
+            # -------------------------------
+            
         except subprocess.CalledProcessError:
             console.print("[red]Failed to create branch (maybe it exists?)[/]")
     else:
