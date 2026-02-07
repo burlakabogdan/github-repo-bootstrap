@@ -53,8 +53,30 @@ Bootstrap Plan:
 | Project  | Work                    | CREATE |
 ```
 
+## Quick Start: Unified CLI
+
+For convenience, use the unified CLI entry point instead of calling individual scripts:
+
+```bash
+# Interactive menu - select command from list
+python .agent/skills/github-repo-bootstrap/scripts/gh-skill.py
+
+# Or run commands directly
+python .agent/skills/github-repo-bootstrap/scripts/gh-skill.py bootstrap
+python .agent/skills/github-repo-bootstrap/scripts/gh-skill.py create-issue
+python .agent/skills/github-repo-bootstrap/scripts/gh-skill.py commit
+python .agent/skills/github-repo-bootstrap/scripts/gh-skill.py create-pr
+
+# See all available commands
+python .agent/skills/github-repo-bootstrap/scripts/gh-skill.py help
+```
+
+## Individual Scripts
+
+You can also call individual scripts directly:
+
 ### 2. Create an Issue
-Interactive wizard to create an issue and automatically add it to the "Work" project.
+Interactive wizard to create an issue and automatically add it to the project.
 
 ```bash
 python .agent/skills/github-repo-bootstrap/scripts/create_issue.py
