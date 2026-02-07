@@ -120,7 +120,8 @@ def ensure_project_v2(user_login, project_title):
             }
             """
             r = gql_request(q_create, {"ownerId": user_id, "title": project_title})
-            return r['data']['createProjectV2']['projectV2']['url']
+            project_data = r['data']['createProjectV2']['projectV2']
+            return {"id": project_data['id'], "url": project_data['url']}
             
         return {"name": project_title, "type": "CREATE", "action": create}
 
@@ -306,7 +307,9 @@ def main():
         proj_action = None
         if proj_config.get('enabled'):
             try:
-                proj_action = ensure_project_v2(user.login, proj_config.get('title', 'Work'))
+                # Use repository name if title is not specified
+                project_title = proj_config.get('title') or repo.name
+                proj_action = ensure_project_v2(user.login, project_title)
             except Exception as e:
                 console.print(f"[red]Failed to query Projects v2: {e}[/]")
                 # If project config is enabled, this should be a blocker or at least clearly failed
@@ -347,6 +350,7 @@ def main():
             
         if ans == "Run":
             project_url = None
+            project_id = None
             with console.status("Applying changes..."):
                 # Labels
                 for a in label_actions:
@@ -359,7 +363,14 @@ def main():
                 
                 # Project
                 if proj_action:
-                    project_url = proj_action['action']()
+                    result = proj_action['action']()
+                    # Handle both string (EXISTS) and dict (CREATE) return types
+                    if isinstance(result, dict):
+                        project_id = result['id']
+                        project_url = result['url']
+                    else:
+                        project_id = proj_action.get('id')
+                        project_url = result
                     
             console.print("[bold green]Success![/]")
             
@@ -369,16 +380,16 @@ def main():
                      console.print("[yellow]Note: This project appears to be closed.[/]")
                      
                 # Link and Configure (Moved out of status block for visibility)
-                if proj_action:
+                if project_id:
                      try:
                         owner, name = repo.full_name.split('/')
                         repo_node_id = get_repo_id(owner, name)
-                        if link_project_to_repo(proj_action['id'], repo_node_id):
+                        if link_project_to_repo(project_id, repo_node_id):
                             console.print(f"Linked project to {repo.full_name}")
                         
                         # Configure Fields
                         console.print("Configuring project fields...")
-                        fields = get_project_fields(proj_action['id'])
+                        fields = get_project_fields(project_id)
                         
                         # Status
                         status_field = next((f for f in fields if f['name'] == "Status"), None)
@@ -391,7 +402,7 @@ def main():
                         priority_field = next((f for f in fields if f['name'] == "Priority"), None)
                         desired_priority = proj_config.get('fields', {}).get('priority', [])
                         if not priority_field and desired_priority:
-                            if create_single_select_field(proj_action['id'], "Priority", desired_priority):
+                            if create_single_select_field(project_id, "Priority", desired_priority):
                                 console.print("Created Priority field")
                         elif priority_field and desired_priority:
                                 update_single_select_field(priority_field, desired_priority)
