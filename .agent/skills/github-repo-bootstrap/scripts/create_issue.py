@@ -8,33 +8,31 @@ console = Console()
 config = load_config()
 
 def add_issue_to_project(issue_node_id, user_login, project_title):
-    # This requires GraphQL. We can reuse bootstrap logic or duplicate simple query.
-    # For MVP, let's try to reuse bootstrap's ensure_project (to get ID) and then add item?
-    # Or just simpler:
-    from bootstrap import ensure_project_v2, gql_request
+    from bootstrap import ensure_project_v2
+    from project_utils import set_project_item_status, add_item_to_project
     
     try:
         proj_action = ensure_project_v2(user_login, project_title)
-        project_id = proj_action['id'] 
-        if not project_id and proj_action['type'] == 'CREATE': 
-             # It means we didn't execute the create action here. 
-             # We should probably assume project exists if bootstrap ran.
-             # If not, we might fail or need to create it.
-             # Let's run the action if it's CREATE? No, that might be too much side effect.
-             # For now, just warn.
+        
+        # Handle both EXISTS and CREATE cases
+        project_id = None
+        if proj_action['type'] == 'EXISTS':
+            project_id = proj_action['id']
+        elif proj_action['type'] == 'CREATE':
+            # Execute the create action to get the project
+            result = proj_action['action']()
+            project_id = result['id']
+            
+        if not project_id:
              console.print("[yellow]Project not found or not created. Skipping link.[/]")
              return
              
-        # Add Item Mutation
-        q_add = """
-        mutation($projectId: ID!, $contentId: ID!) {
-          addProjectV2ItemById(input: {projectId: $projectId, contentId: $contentId}) {
-            item { id }
-          }
-        }
-        """
-        gql_request(q_add, {"projectId": project_id, "contentId": issue_node_id})
+        # Add Item
+        item_id = add_item_to_project(project_id, issue_node_id)
         console.print(f"[green]Added Issue to Project '{project_title}'[/]")
+        
+        # Set Status to Backlog
+        set_project_item_status(project_id, item_id, "Backlog")
         
     except Exception as e:
         console.print(f"[red]Failed to add to project: {e}[/]")
