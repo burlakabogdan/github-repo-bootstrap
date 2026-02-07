@@ -110,6 +110,16 @@ def main():
             pr.merge(merge_method=merge_method)
         console.print(f"[bold green]✓ PR #{pr.number} merged successfully![/]")
         
+        # 6a. Switch to base branch and pull
+        try:
+             import subprocess
+             base_branch = pr.base.ref
+             console.print(f"Switching to [green]{base_branch}[/] and updating...")
+             subprocess.run(["git", "checkout", base_branch], check=True)
+             subprocess.run(["git", "pull"], check=True)
+        except Exception as e:
+             console.print(f"[yellow]Failed to switch/update branch: {e}[/]")
+        
         # 7. Delete branch (optional)
         if questionary.confirm(f"Delete branch '{pr.head.ref}'?", default=True).ask():
             try:
