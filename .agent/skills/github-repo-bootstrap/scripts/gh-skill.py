@@ -10,7 +10,13 @@ from rich.console import Console
 
 console = Console()
 
+__version__ = "1.0.0"
+
 COMMANDS = {
+    "version": {
+        "desc": "Show version",
+        "script": None
+    },
     "bootstrap": {
         "desc": "Bootstrap repository with labels, templates, and project",
         "script": "bootstrap.py"
@@ -91,6 +97,10 @@ def show_menu():
 
 def run_command(command):
     """Run the selected command by importing and executing its main function."""
+    if command == "version":
+        console.print(f"GitHub Repo Bootstrap Skill v{__version__}")
+        return
+
     script_name = COMMANDS[command]["script"]
     module_name = script_name.replace(".py", "")
     
