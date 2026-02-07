@@ -20,7 +20,7 @@ labels:
 
 projects_v2:
   enabled: true
-  title: "Work"
+  title: null  # Will use repository name dynamically
   fields:
     status: ["Backlog", "Ready", "In progress", "Review", "Done"]
     priority: ["P0", "P1", "P2"]
