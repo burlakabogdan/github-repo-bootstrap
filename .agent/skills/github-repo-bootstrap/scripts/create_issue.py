@@ -78,7 +78,9 @@ def main():
             if proj_conf.get('enabled'):
                 # We need Node ID for GraphQL. PyGithub Issue object has `raw_data['node_id']`?
                 # Yes, issue.raw_data['node_id']
-                add_issue_to_project(issue.raw_data['node_id'], user.login, proj_conf.get('title', 'Work'))
+                # Use repository name if title is not specified
+                project_title = proj_conf.get('title') or repo.name
+                add_issue_to_project(issue.raw_data['node_id'], user.login, project_title)
     else:
         console.print("Cancelled.")
 

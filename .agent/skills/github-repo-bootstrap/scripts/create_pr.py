@@ -88,7 +88,9 @@ def main():
                 proj_conf = config.get('projects_v2', {})
                 if proj_conf.get('enabled'):
                     from create_issue import add_issue_to_project
-                    add_issue_to_project(pr.raw_data['node_id'], user.login, proj_conf.get('title', 'Work'))
+                    # Use repository name if title is not specified
+                    project_title = proj_conf.get('title') or repo.name
+                    add_issue_to_project(pr.raw_data['node_id'], user.login, project_title)
                     
                     # Setting Status field is harder, requires FieldID and OptionID.
                     # Skipping "Set Field" for MVP complexity, but adding to board works.
