@@ -1,0 +1,5 @@
+PyGithub>=2.1.1
+requests>=2.31.0
+PyYAML>=6.0.1
+rich>=13.7.0
+questionary>=2.0.1

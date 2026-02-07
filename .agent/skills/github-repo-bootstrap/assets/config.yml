@@ -1,0 +1,34 @@
+version: 1
+github:
+  owner: null # Will be detected from remote
+  repo: null  # Will be detected from remote
+  default_branch: "main"
+
+mode: "solo" # solo|team
+
+labels:
+  type: 
+    - "type:bug"
+    - "type:feature"
+    - "type:refactor"
+    - "type:docs"
+    - "type:chore"
+  priority: 
+    - "p0"
+    - "p1"
+    - "p2"
+
+projects_v2:
+  enabled: true
+  title: "Work"
+  fields:
+    status: ["Backlog", "Ready", "In progress", "Review", "Done"]
+    priority: ["P0", "P1", "P2"]
+
+commit_assistant:
+  enforce_issue_link: true
+  # Regex to extract ID from branch names like feat/123-foo, fix/456, etc.
+  branch_issue_pattern: '^(feat|fix|chore|docs|refactor)\/(?P<id>\d+)(-.+)?$'
+  commit_format: "{type}({scope}): {subject} #{issue}"
+  allowed_types: ["feat", "fix", "refactor", "docs", "chore", "test", "ci", "build"]
+  default_scope: "core"
